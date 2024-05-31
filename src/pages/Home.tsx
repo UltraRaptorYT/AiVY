@@ -15,6 +15,13 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 import FiredGuys from "../artifacts/contracts/MyNFT.sol/FiredGuys.json";
 
@@ -30,6 +37,7 @@ function Home() {
   const [cid, setCid]: any = useState();
   const [signer, setSigner] = useState<ethers.providers.JsonRpcSigner>();
   const [contract, setContract] = useState<ethers.Contract>();
+  const [open, setOpen] = useState<boolean>(false);
 
   useEffect(() => {
     console.log(window.ethereum);
@@ -108,7 +116,7 @@ function Home() {
       if (poisonState) {
         // need await for image
         const formData = new FormData();
-        formData.append("file", convertedFile);
+        formData.append("image", convertedFile);
         const poisonRes = await fetch(
           `${import.meta.env.VITE_SERVER_URL}/poison`,
           {
@@ -122,20 +130,20 @@ function Home() {
         });
       }
 
-      // MINTING NFT
-      if (!(contract && signer)) {
-        setIsMinting(false);
-        return;
-      }
-      const connection = contract.connect(signer);
-      const addr = connection.address;
-      const result = await contract.payToMint(addr, metadata, {
-        value: ethers.utils.parseEther("0.001"),
-      });
+      // // MINTING NFT
+      // if (!(contract && signer)) {
+      //   setIsMinting(false);
+      //   return;
+      // }
+      // const connection = contract.connect(signer);
+      // const addr = connection.address;
+      // const result = await contract.payToMint(addr, metadata, {
+      //   value: ethers.utils.parseEther("0.001"),
+      // });
 
-      await result.wait();
-      const mintResult = await contract.isContentOwned(metadata);
-      console.log(mintResult);
+      // await result.wait();
+      // const mintResult = await contract.isContentOwned(metadata);
+      // console.log(mintResult);
 
       // Upload IPFS
       const formData = new FormData();
@@ -162,6 +170,7 @@ function Home() {
       );
       const resData = await res.json();
       setCid(resData.IpfsHash);
+      setOpen(true);
       console.log(resData);
       setIsMinting(false);
     } catch (error) {
@@ -174,7 +183,20 @@ function Home() {
       console.error(error);
     }
   }
-
+  async function downloadImage(imgURL: string) {
+    const link = document.createElement("a");
+    link.setAttribute("target", "_blank");
+    link.download = imgURL.substring(
+      imgURL.lastIndexOf("/") + 1,
+      imgURL.length
+    );
+    let data = await fetch(imgURL);
+    let blob = await data.blob();
+    link.href = URL.createObjectURL(blob);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
   return (
     <div className="flex flex-col h-full">
       <Nav />
@@ -241,7 +263,7 @@ function Home() {
               onFilesAccepted={handleFilesAccepted}
             />
           </div>
-          <div className="flex flex-col grow">
+          {/* <div className="flex flex-col grow">
             <h3 className="text-lg font-bold">Your Master Pieces</h3>
             <div>
               {cid && (
@@ -251,7 +273,35 @@ function Home() {
                 />
               )}
             </div>
-          </div>
+          </div> */}
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="dark:text-white">
+                  Your Art has been successfully MINTED!
+                </DialogTitle>
+                <DialogDescription className="flex flex-col justify-center gap-3 items-center">
+                  {cid && (
+                    <img
+                      src={`${import.meta.env.VITE_GATEWAY_URL}/ipfs/${cid}`}
+                      alt="ipfs image"
+                      className="h-[400px] w-auto"
+                    />
+                  )}
+                  <Button
+                     className="mx-auto"
+                    onClick={() =>
+                      downloadImage(
+                        `${import.meta.env.VITE_GATEWAY_URL}/ipfs/${cid}`
+                      )
+                    }
+                  >
+                    Download Image
+                  </Button>
+                </DialogDescription>
+              </DialogHeader>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </div>

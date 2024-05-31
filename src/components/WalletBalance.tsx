@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ethers } from "ethers";
+import { Button } from "./ui/button";
 
 function WalletBalance() {
   const [balance, setBalance] = useState<string | undefined>(undefined);
@@ -17,9 +18,7 @@ function WalletBalance() {
     <div className="card">
       <div className="card-body">
         <h5 className="card-title">Your Balance: {balance}</h5>
-        <button className="btn btn-success" onClick={getBalance}>
-          Show My Balance
-        </button>
+        <Button onClick={getBalance}>Show My Balance</Button>
       </div>
     </div>
   );

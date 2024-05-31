@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import FiredGuys from "../artifacts/contracts/MyNFT.sol/FiredGuys.json";
 import { Button } from "@/components/ui/button";
-const contractAddress = import.meta.env.CONTRACT_ADDRESS || "";
+const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS || "";
 
 const provider = new ethers.providers.Web3Provider(window.ethereum);
 

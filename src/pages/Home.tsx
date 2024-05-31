@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import Nav from "@/components/Nav";
-import { useEffect, useState } from "react";
+import React, { ReactNode, useEffect, useState } from "react";
 
 import { ethers } from "ethers";
 import FileUpload from "@/components/FileUpload";
@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/hover-card";
 import { toast } from "sonner";
 
+import FiredGuys from "../artifacts/contracts/MyNFT.sol/FiredGuys.json";
+
 function Home() {
   const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS || "";
   const [provider, setProvider] = useState<ethers.providers.Web3Provider>();
@@ -24,6 +26,10 @@ function Home() {
   const [name, setName] = useState<string>();
   const [description, setDescription] = useState<string>();
   const [poisonState, setPoisonState] = useState<boolean>(true);
+  const [isMinting, setIsMinting] = useState<boolean>(false);
+  const [cid, setCid]: any = useState();
+  const [signer, setSigner] = useState<ethers.providers.JsonRpcSigner>();
+  const [contract, setContract] = useState<ethers.Contract>();
 
   useEffect(() => {
     console.log(window.ethereum);
@@ -43,11 +49,17 @@ function Home() {
     }
     if (provider) {
       getAccountID();
+      setSigner(provider.getSigner());
     }
   }, [provider]);
+
   useEffect(() => {
     console.log(accountID, contractAddress);
   }, [accountID]);
+
+  useEffect(() => {
+    setContract(new ethers.Contract(contractAddress, FiredGuys.abi, signer));
+  }, [contractAddress, FiredGuys, signer]);
 
   const handleFilesAccepted = (files: File[]) => {
     setUploadedFiles(files);
@@ -55,14 +67,80 @@ function Home() {
     console.log("Accepted files:", files);
   };
 
-  function submitForm() {
-    if (uploadedFiles.length == 0) {
-      toast.error("No Artwork Uploaded");
+  async function submitForm() {
+    if (isMinting) {
+      return;
     }
-    if (name?.trim().length == 0) {
-      toast.error("Missing Name for Artwork");
+    setIsMinting(true);
+    try {
+      if (uploadedFiles.length == 0) {
+        throw new Error("No Artwork Uploaded");
+      }
+      if (!name || name?.trim().length == 0) {
+        throw new Error("Missing Name for Artwork");
+      }
+      console.log(name, description, poisonState);
+      // if (poisonState) {
+      //   // need await for image
+      //   axios;
+      // }
+
+      // MINTING NFT
+      if (!(contract && signer)) {
+        setIsMinting(false);
+        return;
+      }
+      const metadata = {
+        name: name,
+        description: description,
+        accountID: accountID,
+      };
+      const connection = contract.connect(signer);
+      const addr = connection.address;
+      const result = await contract.payToMint(addr, metadata, {
+        value: ethers.utils.parseEther("0.001"),
+      });
+
+      await result.wait();
+      const mintResult = await contract.isContentOwned(metadata);
+      console.log(mintResult);
+
+      // Upload IPFS
+      const formData = new FormData();
+      formData.append("file", uploadedFiles[0]);
+
+      formData.append(
+        "pinataMetadata",
+        JSON.stringify({ name: name, keyvalues: metadata })
+      );
+
+      const options = JSON.stringify({
+        cidVersion: 0,
+      });
+      formData.append("pinataOptions", options);
+      const res = await fetch(
+        "https://api.pinata.cloud/pinning/pinFileToIPFS",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${import.meta.env.VITE_PINATA_JWT}`,
+          },
+          body: formData,
+        }
+      );
+      const resData = await res.json();
+      setCid(resData.IpfsHash);
+      console.log(resData);
+      setIsMinting(false);
+    } catch (error) {
+      setIsMinting(false);
+      toast.error(
+        JSON.stringify({
+          message: (error as Error).message,
+        })
+      );
+      console.error(error);
     }
-    console.log(name, description, poisonState);
   }
 
   return (
@@ -84,7 +162,7 @@ function Home() {
                   type="text"
                   id="Name"
                   placeholder="Name"
-                  value={name}
+                  value={name || ""}
                   onInput={(e) => {
                     setName((e.target as HTMLInputElement).value);
                   }}
@@ -96,7 +174,7 @@ function Home() {
                   placeholder="Type your description here."
                   id="description"
                   className="max-h-[200px]"
-                  value={description}
+                  value={description || ""}
                   onInput={(e) => {
                     setDescription((e.target as HTMLTextAreaElement).value);
                   }}
@@ -123,7 +201,7 @@ function Home() {
                 </Label>
               </div>
               <Button className="w-fit mx-auto" onClick={() => submitForm()}>
-                MINT Now
+                {isMinting ? "Minting..." : "MINT Now"}
               </Button>
             </div>
             <FileUpload
@@ -134,10 +212,12 @@ function Home() {
           <div className="flex flex-col grow">
             <h3 className="text-lg font-bold">Your Master Pieces</h3>
             <div>
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Amet
-              sapiente vitae ratione modi cupiditate doloremque fugit aliquid
-              ullam ex blanditiis, accusamus excepturi pariatur quos culpa
-              tenetur incidunt ea sed sunt.
+              {cid && (
+                <img
+                  src={`${import.meta.env.VITE_GATEWAY_URL}/ipfs/${cid}`}
+                  alt="ipfs image"
+                />
+              )}
             </div>
           </div>
         </div>

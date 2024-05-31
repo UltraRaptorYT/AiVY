@@ -101,7 +101,6 @@ function NFTImage({
           <Button onClick={getURI}>Taken! Show URI</Button>
         )}
       </div>
-      <FileUpload />
     </div>
   );
 }

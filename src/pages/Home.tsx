@@ -1,10 +1,10 @@
-import WalletBalance from "./WalletBalance";
+import WalletBalance from "../components/WalletBalance";
 import { useEffect, useState } from "react";
 
 import { ethers } from "ethers";
 import FiredGuys from "../artifacts/contracts/MyNFT.sol/FiredGuys.json";
 import { Button } from "@/components/ui/button";
-import FileUpload from "./FileUpload";
+import FileUpload from "../components/FileUpload";
 
 const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS || "";
 
@@ -33,12 +33,12 @@ function Home() {
       <WalletBalance />
 
       <h1>Fired Guys NFT Collection</h1>
-      <div className="container">
-        <div className="row">
+      <div className="container w-full">
+        <div className="flex flex-wrap gap-5">
           {Array(totalMinted + 1)
             .fill(0)
             .map((_, i) => (
-              <div key={i} className="col-sm">
+              <div key={i} className="w-fit">
                 <NFTImage tokenId={i} getCount={getCount} />
               </div>
             ))}

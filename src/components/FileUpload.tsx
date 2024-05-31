@@ -1,45 +1,75 @@
 import { useDropzone } from "react-dropzone";
+import { Button } from "./ui/button";
+import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
-function FileUpload() {
+interface FileUploadProps {
+  className?: string;
+  onFilesAccepted: (files: File[]) => void;
+}
+
+function FileUpload({ className, onFilesAccepted }: FileUploadProps) {
+  const [previewFiles, setPreviewFiles] = useState<string[]>([]);
+
   const { acceptedFiles, fileRejections, getRootProps, getInputProps } =
     useDropzone({
       accept: {
         "image/jpeg": [],
         "image/png": [],
       },
+      maxFiles: 1,
+      onDrop: (acceptedFiles) => {
+        const filePreviews = acceptedFiles.map((file) =>
+          URL.createObjectURL(file)
+        );
+        setPreviewFiles(filePreviews);
+        onFilesAccepted(acceptedFiles);
+      },
     });
 
-  const acceptedFileItems = acceptedFiles.map((file) => (
-    <li key={file.name}>
-      {file.name} - {file.size} bytes
-    </li>
-  ));
+  useEffect(() => {
+    if (fileRejections.length) {
+      toast.error(fileRejections[0].errors[0].message);
+    }
+  }, [fileRejections]);
 
-  const fileRejectionItems = fileRejections.map(({ file, errors }) => (
-    <li key={file.name}>
-      {file.name} - {file.size} bytes
-      <ul>
-        {errors.map((e) => (
-          <li key={e.code}>{e.message}</li>
-        ))}
-      </ul>
-    </li>
-  ));
+  useEffect(() => {
+    // Clean up the object URLs to avoid memory leaks
+    return () => {
+      previewFiles.forEach((file) => URL.revokeObjectURL(file));
+    };
+  }, [previewFiles]);
 
   return (
-    <section className="w-full">
-      <div {...getRootProps({ className: "dropzone border  p-3" })}>
-        <input {...getInputProps()} />
-        <p>Drag 'n' drop some files here, or click to select files</p>
-        <em>(Only *.jpeg and *.png images will be accepted)</em>
-      </div>
-      <aside>
-        <h4>Accepted files</h4>
-        <ul>{acceptedFileItems}</ul>
-        <h4>Rejected files</h4>
-        <ul>{fileRejectionItems}</ul>
-      </aside>
-    </section>
+    <div
+      {...getRootProps({
+        className: cn(
+          "dropzone border p-12 flex flex-col justify-center items-center gap-2 rounded-lg box-border",
+          className
+        ),
+      })}
+    >
+      {previewFiles.length == 0 ? (
+        <>
+          <input {...getInputProps()} />
+          <span className="text-xl">Drag photo here</span>
+          <span>— or —</span>
+          <Button>Choose photo to upload</Button>
+        </>
+      ) : (
+        previewFiles.map((e, i) => {
+          return (
+            <img
+              src={e}
+              key={`UploadImage${i}`}
+              alt={`Preview ${i}`}
+              className="h-full w-auto object-cover max-h-[300px]"
+            />
+          );
+        })
+      )}
+    </div>
   );
 }
 

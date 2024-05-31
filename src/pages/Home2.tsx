@@ -12,7 +12,7 @@ const provider = new ethers.providers.Web3Provider(window.ethereum);
 
 // get the end user
 const signer = provider.getSigner();
-
+console.log(await provider.listAccounts());
 // get the smart contract
 const contract = new ethers.Contract(contractAddress, FiredGuys.abi, signer);
 

@@ -1,5 +1,5 @@
 import { Route, Routes } from "react-router-dom";
-import Install from "./components/Install";
+import Install from "./pages/Install";
 import Home from "./pages/Home";
 import Error from "./pages/404";
 import Layout from "./pages/Layout";

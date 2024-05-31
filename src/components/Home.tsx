@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import FiredGuys from "../artifacts/contracts/MyNFT.sol/FiredGuys.json";
 import { Button } from "@/components/ui/button";
+import FileUpload from "./FileUpload";
+
 const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS || "";
 
 const provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -94,16 +96,12 @@ function NFTImage({
       <div className="card-body">
         <h5 className="card-title">ID #{tokenId}</h5>
         {!isMinted ? (
-          <button className="btn btn-primary" onClick={mintToken}>
-            Mint
-          </button>
+          <Button onClick={mintToken}>Mint</Button>
         ) : (
-          <button className="btn btn-secondary" onClick={getURI}>
-            Taken! Show URI
-          </button>
+          <Button onClick={getURI}>Taken! Show URI</Button>
         )}
       </div>
-      <Button>hi</Button>
+      <FileUpload />
     </div>
   );
 }

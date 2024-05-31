@@ -8,6 +8,8 @@ flask = "*"
 gunicorn = "*"
 stegano = "*"
 flask-cors = "*"
+numpy = "*"
+tensorflow = "*"
 
 [dev-packages]
 

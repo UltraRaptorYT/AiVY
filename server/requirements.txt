@@ -2,3 +2,5 @@ Flask
 Gunicorn
 stegano
 flask-cors
+numpy
+tensorflow

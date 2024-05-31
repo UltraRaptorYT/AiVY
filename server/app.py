@@ -3,6 +3,8 @@ from stegano import lsb
 from PIL import Image
 import io
 from flask_cors import CORS
+import numpy as np
+import tensorflow as tf
 
 app = Flask(__name__)
 CORS(app)
@@ -47,7 +49,6 @@ def encode_stegano():
         secret_message = request.form.get('message', 'FUNNY WORDS Protected by AiVY')
         encoded_image = lsb.hide(image, secret_message)
 
-
         encoded_image_io = io.BytesIO()
 
         # Save the image to the in-memory file
@@ -61,7 +62,6 @@ def encode_stegano():
 
 @app.route("/poison", methods=['POST'])
 def poison():
-    print(request.files)
     if 'image' not in request.files:
         return 'No image uploaded', 400
     image_file = request.files['image']
@@ -73,20 +73,29 @@ def poison():
     if image_file:
         # Read the image file
         image = Image.open(image_file)
+        encoded_image_format = image.format  # Use the original image format
+        image = image.convert('RGB')
+        image_np = np.array(image, dtype=np.float32) / 255.0
+        image_tf = tf.convert_to_tensor(image_np, dtype=tf.float32)
+        epsilon = 0.01
 
-        # Apply LSB steganography
-        secret_message = request.form.get('message', 'FUNNY WORDS Protected by AiVY')
-        encoded_image = lsb.hide(image, secret_message)
-# Create an in-memory file to store the encoded image
+        perturbations = tf.random.uniform(image_tf.shape, minval=-epsilon, maxval=epsilon, dtype=tf.float32)
+
+        adversarial_image_tf = tf.clip_by_value(image_tf + perturbations, 0.0, 1.0)
+        adversarial_image_np = adversarial_image_tf.numpy()
+        adversarial_image = (adversarial_image_np * 255).astype(np.uint8)
+        adversarial_image_pil = Image.fromarray(adversarial_image)
+
+        # Create an in-memory file to store the encoded image
         encoded_image_io = io.BytesIO()
 
         # Save the image to the in-memory file
-        encoded_image_format = image.format  # Use the original image format
-        encoded_image.save(encoded_image_io, format=encoded_image_format)
+        adversarial_image_pil.save(encoded_image_io, format=encoded_image_format)
         encoded_image_io.seek(0)
 
         # Return the contents of the in-memory file
         return send_file(encoded_image_io, mimetype=f'image/{encoded_image_format.lower()}')
+
 
 if __name__ == '__main__':
     app.run(debug=True)

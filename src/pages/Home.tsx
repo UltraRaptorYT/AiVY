@@ -80,21 +80,53 @@ function Home() {
         throw new Error("Missing Name for Artwork");
       }
       console.log(name, description, poisonState);
-      // if (poisonState) {
-      //   // need await for image
-      //   axios;
-      // }
+
+      const metadata = {
+        name: name,
+        description: description,
+        accountID: accountID,
+      };
+
+      // Steganography
+      const steganoFormData = new FormData();
+      steganoFormData.append("image", uploadedFiles[0]);
+      steganoFormData.append("message", JSON.stringify(metadata));
+      const steganoRes = await fetch(
+        `${import.meta.env.VITE_SERVER_URL}/encode/stegano`,
+        {
+          method: "POST",
+          body: steganoFormData,
+        }
+      );
+      const steganoResData = await steganoRes.blob();
+      console.log(steganoResData, steganoResData.type, uploadedFiles[0].name);
+      let convertedFile = new File([steganoResData], uploadedFiles[0].name, {
+        type: steganoResData.type,
+      });
+
+      // Poison Model
+      if (poisonState) {
+        // need await for image
+        const formData = new FormData();
+        formData.append("file", convertedFile);
+        const poisonRes = await fetch(
+          `${import.meta.env.VITE_SERVER_URL}/poison`,
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+        const poisonResData = await poisonRes.blob();
+        convertedFile = new File([poisonResData], uploadedFiles[0].name, {
+          type: poisonResData.type,
+        });
+      }
 
       // MINTING NFT
       if (!(contract && signer)) {
         setIsMinting(false);
         return;
       }
-      const metadata = {
-        name: name,
-        description: description,
-        accountID: accountID,
-      };
       const connection = contract.connect(signer);
       const addr = connection.address;
       const result = await contract.payToMint(addr, metadata, {
@@ -107,7 +139,7 @@ function Home() {
 
       // Upload IPFS
       const formData = new FormData();
-      formData.append("file", uploadedFiles[0]);
+      formData.append("file", convertedFile);
 
       formData.append(
         "pinataMetadata",

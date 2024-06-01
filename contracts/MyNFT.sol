@@ -11,8 +11,7 @@ contract FiredGuys is ERC721, ERC721URIStorage, Ownable {
 
     Counters.Counter private _tokenIdCounter;
 
-    // Mapping to store metadata for each token ID
-    mapping(uint256 => string) private _tokenURIs;
+    mapping(string => uint8) existingURIs;
 
     constructor() ERC721("FiredGuys", "FYR") {}
 
@@ -25,6 +24,7 @@ contract FiredGuys is ERC721, ERC721URIStorage, Ownable {
         _tokenIdCounter.increment();
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, uri);
+        existingURIs[uri] = 1;
     }
 
     // The following functions are overrides required by Solidity.
@@ -38,37 +38,23 @@ contract FiredGuys is ERC721, ERC721URIStorage, Ownable {
     function tokenURI(
         uint256 tokenId
     ) public view override(ERC721, ERC721URIStorage) returns (string memory) {
-        return _tokenURIs[tokenId];
-    }
-
-    function _setTokenURI(
-        uint256 tokenId,
-        string memory uri
-    ) internal override {
-        _tokenURIs[tokenId] = uri;
+        return super.tokenURI(tokenId);
     }
 
     function isContentOwned(string memory uri) public view returns (bool) {
-        for (uint256 i = 0; i < _tokenIdCounter.current(); i++) {
-            if (
-                keccak256(abi.encodePacked(_tokenURIs[i])) ==
-                keccak256(abi.encodePacked(uri))
-            ) {
-                return true;
-            }
-        }
-        return false;
+        return existingURIs[uri] == 1;
     }
 
     function payToMint(
         address recipient,
         string memory metadataURI
     ) public payable returns (uint256) {
-        require(!isContentOwned(metadataURI), "NFT already minted!");
+        require(existingURIs[metadataURI] != 1, "NFT already minted!");
         require(msg.value >= 0.001 ether, "Need to pay up!");
 
         uint256 newItemId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
+        existingURIs[metadataURI] = 1;
 
         _mint(recipient, newItemId);
         _setTokenURI(newItemId, metadataURI);

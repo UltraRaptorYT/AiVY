@@ -130,18 +130,19 @@ function Home() {
         });
       }
 
-      // // MINTING NFT
-      // if (!(contract && signer)) {
-      //   setIsMinting(false);
-      //   return;
-      // }
-      // const connection = contract.connect(signer);
-      // const addr = connection.address;
-      // const result = await contract.payToMint(addr, metadata, {
-      //   value: ethers.utils.parseEther("0.001"),
-      // });
+      // MINTING NFT
+      if (!(contract && signer)) {
+        setIsMinting(false);
+        return;
+      }
+      const connection = contract.connect(signer);
+      const addr = connection.address;
+      const result = await contract.payToMint(addr, JSON.stringify(metadata), {
+        value: ethers.utils.parseEther("0.001"),
+      });
 
-      // await result.wait();
+      await result.wait();
+      console.log(result);
       // const mintResult = await contract.isContentOwned(metadata);
       // console.log(mintResult);
 
@@ -289,7 +290,7 @@ function Home() {
                     />
                   )}
                   <Button
-                     className="mx-auto"
+                    className="mx-auto"
                     onClick={() =>
                       downloadImage(
                         `${import.meta.env.VITE_GATEWAY_URL}/ipfs/${cid}`
